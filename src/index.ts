@@ -54,14 +54,14 @@ client.on('message', msg => {
     const args = msg.content.slice(prefix.length).trim().split(' ').map(p => p = p.trim())
     const command = args.shift()
 
-    if(!banking) {
+    if(!banking || !profile) {
         return msg.channel.send('Bot is not ready to be used yet')
     }
 
     if(command === 'balance') {
         const id = msg.mentions.members.first()?.id || msg.author.id
 
-        const player = profile.members.find(m => m.uuid === config.discordMappings[id])[0]
+        const player = profile.members.find(m => m.uuid === config.discordMappings[id])
         if(!player) {
             console.log(`No matching Skyblock profile member for Discord id{${id}}`.red)
             return msg.channel.send(`id{${id}} is not connected to this bot`)
