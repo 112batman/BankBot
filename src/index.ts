@@ -61,11 +61,12 @@ client.on('message', msg => {
     if(command === 'balance') {
         const id = msg.mentions.members.first()?.id || msg.author.id
 
-        if(!profile.members[id]) {
+        const player = profile.members.find(m => m.uuid === config.discordMappings[id])[0]
+        if(!player) {
             console.log(`No matching Skyblock profile member for Discord id{${id}}`.red)
             return msg.channel.send(`id{${id}} is not connected to this bot`)
         }
-        return msg.channel.send(`You have ${banking.getBalance(profile.members.find(m => m.uuid === config.discordMappings[id])[0])}`)
+        return msg.channel.send(`You have ${banking.getBalance(player)}`)
     }
 })
 
