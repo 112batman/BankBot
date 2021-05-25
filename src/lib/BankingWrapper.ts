@@ -1,5 +1,12 @@
 import HypixelApi, {Transaction, Profile, Player, TransactionType} from "./HypixelApi";
 import db from 'quick.db'
+import fs from 'fs'
+import path from 'path'
+import { Config } from "../cli/generateConfig";
+
+const config: Config = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'config.json'), {
+    encoding: 'utf-8'
+}))
 
 export default class BankingWrapper {
     private oldTransactions: Transaction[] = null
@@ -30,16 +37,9 @@ export default class BankingWrapper {
     private requestStartingBalance(uuid: string) {
         if(db.has(uuid)) return db.get(uuid)
 
-        switch(uuid) {
-            case '58c4e7abfd9a456d998122207fa0bb4a': // Stan
-                return 59000000
-            case '5bdf56c1d67149a4ab8ef024edb5d3d4': // Twan
-                return 5000000
-            case '060a1447dc174543a14d83403e55b7aa': // Tijn
-                return 18900000
-            default:
-                return 0
-        }
+        if(config.startingBalance[uuid]) return config.startingBalance[uuid]
+        console.log(`No starting balance specified in config.json for uuid{${uuid}}, assuming 0`.red)
+        return 0
     }
 
     private updateBalance(player: Player, amount: number) {

@@ -1,38 +1,27 @@
 import { Client } from "discord.js";
 import BankingWrapper from "./lib/BankingWrapper";
-import HypixelApi, { Player } from "./lib/HypixelApi";
+import HypixelApi, { Player, Profile } from "./lib/HypixelApi";
+import fs from 'fs'
+import path from 'path'
+import { Config } from "./cli/generateConfig";
+import 'colors'
 
-const mappings: Map<string, Player> = new Map();
+const config: Config = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config.json'), {
+    encoding: 'utf-8'
+}))
 
 let banking: BankingWrapper
+let profile: Profile
 (async () => {
-    const api = await HypixelApi.create('f1fa25ef-1da0-4df6-9d06-264f2159c2c0')
+    const api = await HypixelApi.create(config.apiKey)
     banking = new BankingWrapper(api)
 
     const profiles = await api.getProfiles()
-    const profile = profiles[1]
-
-    profile.members.forEach(member => {
-        switch(member.uuid) {
-            case '58c4e7abfd9a456d998122207fa0bb4a': // Stan
-                mappings.set('686904489206087718', member)
-                break
-            case 'ed165a011e5447e692956e203a4d28eb': // Finn
-                mappings.set('519513599094292481', member)
-                break
-            case '5bdf56c1d67149a4ab8ef024edb5d3d4': // Twan
-                mappings.set('684059935633440800', member)
-                break
-            case 'b66e2dc51af04022b2a98c4c50b27d6a': // Jouke
-                mappings.set('684673272033312811', member)
-                break
-            case '060a1447dc174543a14d83403e55b7aa': // Tijn
-                mappings.set('464287642356285442', member)
-                break
-            default:
-                break
-        }
-    })
+    profile = profiles.filter(p => p.uuid === config.profileUuid)[0]
+    if(!profile) {
+        console.log('Profile from config.json doesn\'t exist'.red)
+        process.exit(0)
+    }
 
     console.log('Monitoring the following members')
     console.log(profile.members)
@@ -70,8 +59,14 @@ client.on('message', msg => {
     }
 
     if(command === 'balance') {
-        return msg.channel.send(`You have ${banking.getBalance(mappings.get(msg.author.id))}`)
+        const id = msg.mentions.members.first()?.id || msg.author.id
+
+        if(!profile.members[id]) {
+            console.log(`No matching Skyblock profile member for Discord id{${id}}`.red)
+            return msg.channel.send(`id{${id}} is not connected to this bot`)
+        }
+        return msg.channel.send(`You have ${banking.getBalance(profile.members.find(m => m.uuid === config.discordMappings[id])[0])}`)
     }
 })
 
-client.login('ODQ2NDE3MDM3MDc2ODU2ODc0.YKvNSw.ds-0vIvm7xIQENKBTkj_-m9yN1M')
+client.login(config.discordToken)
